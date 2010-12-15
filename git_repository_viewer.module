@@ -1,0 +1,95 @@
+<?php
+// $Id$
+/**
+ * @file
+ *   git_repository_viewer provides a simple git repository browser.
+ */
+
+/**
+ * Implementation of hook_menu().
+ */
+function git_repository_viewer_menu() {
+  $menu['reposiotry/%'] = array();
+}
+
+function git_repository_viewer_theme() {
+  return array(
+    'git_repository_viewer_diretory' => array(
+    ),
+  );
+}
+
+/**
+ *
+ */
+function git_repository_viewer_view_repository($repo_id) {
+  // Get information about what we are viewing.
+  $path = isset($_get['path']) ? $_get['path'] : '';
+  // TODO: Get master or first branch if none is specified.
+  $branch = isset($_get['branch']) ? $_get['branch'] : '';
+  // TODO: Get tip of branch in question if no commit is specified
+  $commit = isset($_get['commit']) ? $_get['commit'] : '';
+
+  // Get a scratch folder where we can construct the repository before browsing it.
+  $scratch_folder = _git_repository_get_scratch_folder($repo_id, $commit, $branch);
+  if (is_dir($scratch_folder . '/' . $path)) {
+    // TODO: Create table of files and folders
+    return git_repository_viewer_view_item_table();
+  }
+  elseif (is_file($scratch_folder . '/' . $path)) {
+    // TODO: View the individual item
+    return 'Not implemented yet.';
+  }
+  else {
+    drupal_not_found();
+  }
+}
+
+// TODO: Make browsing interface.
+
+/**
+ *
+ * TODO: make this a theme function.
+ */
+function git_repository_viewer_view_item_table($repo_id, $path) {
+  // Create the header columns for our table.
+  $header = array(
+    t('Name'),
+    // t('Date'),
+    // t('Author'),
+    // t('Commit'),
+    // t('Message'),
+  );
+  // Use scandir to get a list of the files and folders.
+  $items = scandir($path);
+  $rows = array();
+  foreach ($items as $name => $value) {
+    dpm(array('name' => $name, 'value' => $value));
+    $rows[] = array(
+      $name,
+    );
+  }
+  return theme('table', $header, $rows);
+}
+
+/**
+ *
+ */
+function _git_repository_get_scratch_folder($repo_id, $commit, $branch = FALSE) {
+  // Get the temp directory.
+  $tmp = file_directory_temp();
+  // Find the scratch folder for this revision.
+  $scratch_folder = md5($repo_id . $commit);
+  $path = isset($_get['path']) ? $_get['path'] : '';
+  $commit = isset($_get['commit']) ? $_get['commit'] : '';
+  if (!is_dir($scratch_folder)) {
+    mkdir($scratch_folder);
+    $command = 'git clone ' . $local_repository_path . ' ' . $scratch_folder
+    if ($branch) {
+      $commit .= ' -b ' . $branch;
+    }
+    // TODO: Consider whether there is a better way to do this?
+    shell_exec($command);
+  }
+  return $scratch_folder;
+}

@@ -1,0 +1,7 @@
+; $Id$
+name = "Git Reposiotry Viewer"
+description = "A simple git repository browser."
+package = Version Control
+dependencies[] = versioncontrol_git
+core = 6.x
+php = 5.2
