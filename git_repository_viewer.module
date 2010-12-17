@@ -10,17 +10,15 @@
  */
 function git_repository_viewer_menu() {
   // This generic callback is used for all repository browsing regardless of whether the browsed item
-  $menu['repository/%versioncontrol_repository'] = array(
+  $menu['git-repository-view/%versioncontrol_repository'] = array(
     'title callback' => 'git_repository_viewer_view_repository_title_callback',
     'title arguments' => array(1),
     'page callback' => 'git_repository_viewer_view_repository',
     'page arguments' => array(1),
-    // TODO: We should have an access callback that provides hooks so that 'browse own repos' permissions can be
-    // added by third party modules.
     'access arguments' => array('browse all versioncontrol repositories'),
   );
 
-  $menu['repository/commit/%versioncontrol_repository'] = array(
+  $menu['git-repository-view/commit/%versioncontrol_repository'] = array(
     'title' => 'Git Diff',
     'page callback' => 'git_repository_viewer_view_commit',
     'page arguments' => array(2),
@@ -185,7 +183,7 @@ function git_repository_viewer_get_link($name, $other_data = array()) {
     $path = ($info['path'] == '' ? '' : $info['path'] . '/');
   }
   $name = $name != '' ? $name : $node->name;
-  $link = l($name, 'repository/' . $info['repository']->repo_id, $options = array('query' => $other_data));
+  $link = l($name, 'git-repository-view/' . $info['repository']->repo_id, $options = array('query' => $other_data));
   return $link;
 }
 
@@ -261,7 +259,7 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
     }
     $commit_link = git_repository_viewer_get_link($git_backend->formatRevisionIdentifier($item_data->revision, 'short'), array('commit' => $item_data->revision));
     if ($item_data->message) {
-      $message_link = l($item_data->message, 'repository/commit/' . $data['repository']->repo_id, array('query' => array('commit' => $item_data->revision)));
+      $message_link = l($item_data->message, 'git-repository-view/commit/' . $data['repository']->repo_id, array('query' => array('commit' => $item_data->revision)));
     }
     else {
       $message_link = '';
