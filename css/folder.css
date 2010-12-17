@@ -1,0 +1,13 @@
+/**
+ * @file
+ *   Provide styling for folder lists.
+ */
+table td.folder a {
+  background: url('../images/folder.png') no-repeat;
+  padding: 0.2em 0 0.2em 2em;
+}
+
+table td.file a {
+  background: url('../images/file.png') repeat-y;
+  padding: 0.2em 0 0.2em 2em;
+}

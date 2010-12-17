@@ -1,0 +1,44 @@
+/**
+ * @file
+ *   Provide styling for folder lists.
+ */
+.git-repo-nav {
+  width: 100%;
+}
+
+.git-repo-nav .commit-links {
+  float: right;
+  display: float;
+}
+.git-repo-nav div {
+  display: inline;
+  padding: 1em 0 1em 0;
+}
+
+
+.git-repo-nav .commit-links .next-commit-link {
+  padding-left: 1em;
+}
+
+.git-repo-nav .folder-links {
+  float: left;
+  display: float;
+}
+
+.git-repo-nav .folder-links .history-link {
+  padding-left: 1em;
+}
+
+.git-repo-browser-content img {
+  background: gray;
+  padding: 0.5em;
+  display: float;
+  float: left;
+}
+.git-repo-browser-content .git-repo-image-wrapper {
+  padding: 0.5em;
+  border: 1px solid black;
+  background: white;
+  display: float;
+  float: left;
+}

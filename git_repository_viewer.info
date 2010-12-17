@@ -5,3 +5,12 @@ package = Version Control
 dependencies[] = versioncontrol_git
 core = 6.x
 php = 5.2
+
+files[] = glip/lib/binary.class.php
+files[] = glip/lib/git_blob.class.php
+files[] = glip/lib/git.class.php
+files[] = glip/lib/git_commit.class.php
+files[] = glip/lib/git_commit_stamp.class.php
+files[] = glip/lib/git_object.class.php
+files[] = glip/lib/git_tree.class.php
+files[] = glip/lib/glip.php
