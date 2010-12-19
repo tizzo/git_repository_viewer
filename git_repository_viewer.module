@@ -327,6 +327,7 @@ function git_repository_viewer_get_blob_type($name) {
     'install',
     'test',
     'inc',
+    'engine',
   );
   if (in_array($ext, $drupal_extensions)) {
     $type = 'php';
