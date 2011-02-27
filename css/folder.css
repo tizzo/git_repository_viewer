@@ -9,5 +9,5 @@ table td.folder a {
 
 table td.file a {
   background: url('../images/file.png') repeat-y;
-  padding: 0.2em 0 0.2em 2em;
+  padding: 1px 0 0px 2em;
 }
