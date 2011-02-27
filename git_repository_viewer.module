@@ -57,7 +57,7 @@ function git_repository_viewer_theme() {
         'name' => '',
       ),
     ),
-    'git_repository_viewer_view_blob' => array(
+    'git_repository_viewer_view_file' => array(
       'arguments' => array(
         'blob' => NULL,
         'name' => '',
@@ -93,10 +93,6 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
   static $repository_data = FALSE;
   if ($repository_data == FALSE && $versioncontol_repository != FALSE) {
 
-    // TODO: deprecate this!
-    // Get a Glip repository object for this repository.
-    $glip_repo = new Git($versioncontol_repository->root);
-
     // Get the handler from with which to load repo data.
     $handler = git_repository_viewer_handler_factory();
     // Get information about what path within the repository we are viewing.
@@ -107,27 +103,15 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
     if (!$branch) {
       $branch = array_shift($versioncontol_repository->loadBranches())->name;
     }
-    $data = $handler->getRepoData($path);
-    // If we do not yet have a SHA-1 hash of the commit to view, find it now.
-    if (!$commit) {
-      $commit = $glip_repo->getTip($branch);
-    }
-    else {
-      $commit = sha1_bin($commit);
-    }
+    // TODO: consider whether we should find the most recent commit from the DB instead.
+    $data = $handler->getRepoData($versioncontol_repository->root, $branch, $commit);
 
-    $parents = array();
-    try {
-      $parents = $glip_repo->getObject($commit)->parents;
+    foreach($data as $name => $value) {
+      $$name = $value;
     }
-    catch (Exception $e) {
-      $error = t('Object %sha1 could not be found in repository %repo_id', array('%sha1' => sha1_hex($commit), '%repo_id' => $versioncontol_repository->repo_id));
-      watchdog('git_repository_viewer', $error);
-    }
-
+    
     $repository_data = array(
       'repository' => $versioncontol_repository,
-      'glip_repo' => $glip_repo,
       'path' => $path,
       'branch' => $branch,
       'commit' => $commit,
@@ -148,18 +132,17 @@ function git_repository_viewer_view_repository(VersioncontrolGitRepository $vers
   // Get the object we are trying to view.
   $data = git_repository_viewer_get_object_from_path($repo_data);
 
-  $name = $data->name;
-  $object = $data->object;
+  $name = $data->name ? $data->name : $versioncontol_repository->name;
 
   // Determine whether we are trying to view a folder or a file.
-  if (get_class($object) == 'GitTree') {
+  if ($data->type == 'directory') {
     // TODO: Create table of files and folders
-    $content = theme('git_repository_viewer_view_directory', $object, $name);
+    $content = theme('git_repository_viewer_view_directory', $data->contents, $name);
   }
-  elseif (get_class($object) == 'GitBlob') {
-    $content = theme('git_repository_viewer_view_blob', $object, $name);
+  elseif ($data->type == 'file') {
+    $content = theme('git_repository_viewer_view_file', $object, $name);
   }
-  // If we have neither a tree nor a blob, return page not found.
+  // If we have neither a directory or a file, return page not found.
   else {
     drupal_not_found();
     return;
@@ -183,8 +166,8 @@ function git_repository_viewer_get_link_to_node($node, $other_data = array()) {
   if (isset($info['commit'])) {
     $other_data['commit'] = sha1_hex($info['commit']);
   }
-  $other_data['path'] = $other_data['path'] . $node->name;
-  $name = $node->name;
+  $other_data['path'] = $other_data['path'] . $node['name'];
+  $name = $node['name'];
   return git_repository_viewer_get_link($name, $other_data);
 }
 
@@ -194,7 +177,7 @@ function git_repository_viewer_get_link($name, $other_data = array()) {
     $path = ($info['path'] == '' ? '' : $info['path'] . '/');
   }
   $name = $name != '' ? $name : $node->name;
-  $link = l($name, 'git-repository-view/' . $info['repository']->repo_id, $options = array('query' => $other_data));
+  $link = l($name, 'git-repository-viewer/' . $info['repository']->repo_id, $options = array('query' => $other_data));
   return $link;
 }
 
@@ -203,29 +186,7 @@ function git_repository_viewer_get_link($name, $other_data = array()) {
  *
  */
 function git_repository_viewer_get_object_from_path($repo_data) {
-  $glip_repo = $repo_data['glip_repo'];
-  try {
-    $commit = $glip_repo->getObject($repo_data['commit']);
-    // Get the tree for this repository at this commit.
-    $root_tree = $glip_repo->getObject($commit->tree);
-  }
-  catch(Exception $e) {
-    return FALSE;
-  }
-  $path = explode('/', $repo_data['path']);
-  $object->object = $root_tree;
-  $object->name = $repo_data['repository']->name;
-  if (count($path) && $path[0] != '') {
-    foreach ($path as $item) {
-      if (array_key_exists($item, $object->object->nodes)) {
-        $object->object = $glip_repo->getObject($object->object->nodes[$item]->object);
-        $object->name = $item;
-      }
-      else {
-        return $false;
-      }
-    }
-  }
+  $object = git_repository_viewer_handler_factory()->getObject($repo_data['repository']->root, $repo_data['path'], $repo_data['branch'], $repo_data['commit']);
   return $object;
 }
 
@@ -244,9 +205,9 @@ function git_repository_viewer_branch_form($form_state, $repo_data) {
 }
 
 /**
- *
+ * Default theme implementation for git_repository_viewer_view_directory.
  */
-function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
+function theme_git_repository_viewer_view_directory($contents, $name) {
   // Create the header columns for our table.
   drupal_add_css(drupal_get_path('module', 'git_repository_viewer') . '/css/folder.css');
   $header = array(
@@ -260,7 +221,7 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
   $data = git_repository_viewer_get_repository_page_details();
   $paths = array();
   $base_path = $data['path'] == '' ? '' : '/' . $data['path'];
-  foreach ($tree->nodes as $name => $value) {
+  foreach ($contents as $name => $value) {
     $paths[] = $base_path . '/' . $name;
   }
   $query = db_select('versioncontrol_item_revisions', 'vir')
@@ -276,7 +237,8 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
     ->execute()
     ->fetchAllAssoc('path');
   $git_backend = new VersioncontrolGitBackend;
-  foreach ($tree->nodes as $name => $object) {
+  $rows = array();
+  foreach ($contents as $name => $item) {
     $item_data = new stdClass;
     $item_path = $base_path . '/' . $name;
     if (isset($results[$item_path])) {
@@ -286,7 +248,7 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
       $commit_link = git_repository_viewer_get_link($git_backend->formatRevisionIdentifier($item_data->revision, 'short'), array('commit' => $item_data->revision));
     }
     if (isset($item_data->message) && $item_data->message) {
-      $message_link = l($item_data->message, 'git-repository-view/commit/' . $data['repository']->repo_id, array('query' => array('commit' => $item_data->revision)));
+      $message_link = l($item_data->message, 'git-repository-viewer/commit/' . $data['repository']->repo_id, array('query' => array('commit' => $item_data->revision)));
     }
     else {
       $message_link = '';
@@ -294,12 +256,12 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
     $rows[] = array(
       'data' => array(
         'name' => array(
-          'data' => git_repository_viewer_get_link_to_node($object),
-          'class' => $object->is_dir ? 'folder' : 'file',
+          'data' => git_repository_viewer_get_link_to_node($item),
+          'class' => $item['directory'] ? 'folder' : 'file',
         ),
         'date' => isset($item_data->date) ? t('@time ago', array('@time' => format_interval(time() - $item_data->date))) : '',
         'author' => isset($item_data->committer) ? $item_data->committer : '',
-        'commit' => $commit_link ? $commit_link : '',
+        'commit' => isset($commit_link) ? $commit_link : '',
         'message' => $message_link,
       ),
     );
@@ -308,12 +270,14 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
 }
 
 /**
- * @param (GitBlob) $versioncontol_repository
- *   A VersioncontrolGitRepository object representing the repository we wish to view.
- * @param (string) $path
- *   The path to the directory structure we actually want to view.
+ * Default theme implementation for git_repository_viewer_view_file.
+ *
+ * @param (fileContents) $file_contents
+ *   The actual contents of the file being viewed.
+ * @param (string) $name
+ *   The name of the file.
  */
-function theme_git_repository_viewer_view_blob(GitBlob $blob, $name) {
+function theme_git_repository_viewer_view_file($file_contents, $name) {
   $type = git_repository_viewer_get_blob_type($name);
   $image_extensions = array(
     'jpg',
@@ -323,11 +287,13 @@ function theme_git_repository_viewer_view_blob(GitBlob $blob, $name) {
     'ico',
   );
   if (in_array($type, $image_extensions)) {
+    // TODO: turn this into a theme function.
     $output = '<div class="git-repo-image-wrapper">';
     $output .= '<img src="data:image/' . $type . ';base64,' . base64_encode($blob->data) . '">';
     $output .= '</div>';
   }
   else {
+    // TODO: turn this into a theme function?
     $output = git_repository_viewer_format_text($blob->data, $type);
   }
   return $output;
@@ -369,20 +335,13 @@ function git_repository_viewer_view_commit(VersioncontrolGitRepository $versionc
   // Sanity check to make sure that this commit id is only numbers and letters
   // and does not attempt to execute aribtrary code on our 'git-show system call'
   if (preg_match('/^[a-zA-Z0-9]+$/', $_GET['commit']) && ctype_xdigit($_GET['commit'])) {
+    dpm($_GET['commit']);
     $data = git_repository_viewer_get_repository_page_details($versioncontrol_repository);
-    $glip_repo = $data['glip_repo'];
-    try {
-      $commit = $glip_repo->getObject($data['commit']);
-      // TODO: This can almost certainly be done without changing directories.
-      $cwd = getcwd();
-      chdir($versioncontrol_repository->root);
-      $diff_command = "git show '{$_GET['commit']}'";
-      $diff = shell_exec($diff_command);
-      chdir($cwd);
-      $output = git_repository_viewer_format_text($diff, 'diff');
+    if ($commit_diff = git_repository_viewer_handler_factory()->getCommit($data['repository']->root, $data['branch'], sha1_hex($data['commit']))) {
+      $output = git_repository_viewer_format_text($commit_diff, 'diff');
       return $output;
     }
-    catch (Exception $e) {
+    else {
       drupal_set_message(t('The commit you were looking for was not found'), 'error');
     }
   }
@@ -423,9 +382,14 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
 }
 
 /**
+ * A factory method for 
  *
+ * TODO: Make this configurable so that a remote handler can be used.
  */
 function git_repository_viewer_handler_factory() {
-  $handler = new GitRepoViewerLocalGlip;
+  static $handler = FALSE;
+  if (!$handler) {
+    $handler = new GitRepoViewerLocalGlip;
+  }
   return $handler;
 }
