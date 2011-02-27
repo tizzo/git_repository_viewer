@@ -17,7 +17,6 @@ function git_repository_viewer_menu() {
     'page arguments' => array(1),
     'access arguments' => array('browse all versioncontrol repositories'),
   );
-
   $menu['git-repository-view/commit/%versioncontrol_repository'] = array(
     'title' => 'Git Diff',
     'page callback' => 'git_repository_viewer_view_commit',
@@ -138,7 +137,7 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
 function git_repository_viewer_view_repository(VersioncontrolGitRepository $versioncontol_repository) {
 
   // Get the repository data for this particular repository.
-  $repo_data = git_repository_viewer_get_repository_page_details($versioncontol_repository, $glip_repo);
+  $repo_data = git_repository_viewer_get_repository_page_details($versioncontol_repository);
 
   // Get the object we are trying to view.
   $data = git_repository_viewer_get_object_from_path($repo_data);
@@ -172,14 +171,20 @@ function git_repository_viewer_get_link_to_node($node, $other_data = array()) {
   if (!isset($other_data['path']) || $other_data['path'] == '') {
     $other_data['path'] = ($info['path'] == '' ? '' : $info['path'] . '/');
   }
+  if (isset($info['branch'])) {
+    $other_data['branch'] = $info['branch'];
+  }
+  if (isset($info['commit'])) {
+    $other_data['commit'] = sha1_hex($info['commit']);
+  }
   $other_data['path'] = $other_data['path'] . $node->name;
-  $name = $name != '' ? $name : $node->name;
+  $name = $node->name;
   return git_repository_viewer_get_link($name, $other_data);
 }
 
 function git_repository_viewer_get_link($name, $other_data = array()) {
   $info = git_repository_viewer_get_repository_page_details();
-  if (!isset($other_data['path']) && $other_data['path'] != '') {
+  if (isset($other_data['path']) && $other_data['path'] != '') {
     $path = ($info['path'] == '' ? '' : $info['path'] . '/');
   }
   $name = $name != '' ? $name : $node->name;
@@ -257,8 +262,10 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
     if (isset($results[$item_path])) {
       $item_data = $results[$item_path];
     }
-    $commit_link = git_repository_viewer_get_link($git_backend->formatRevisionIdentifier($item_data->revision, 'short'), array('commit' => $item_data->revision));
-    if ($item_data->message) {
+    if (isset($item_data->revision)) {
+      $commit_link = git_repository_viewer_get_link($git_backend->formatRevisionIdentifier($item_data->revision, 'short'), array('commit' => $item_data->revision));
+    }
+    if (isset($item_data->message) && $item_data->message) {
       $message_link = l($item_data->message, 'git-repository-view/commit/' . $data['repository']->repo_id, array('query' => array('commit' => $item_data->revision)));
     }
     else {
@@ -270,8 +277,8 @@ function theme_git_repository_viewer_view_directory(GitTree $tree, $name) {
           'data' => git_repository_viewer_get_link_to_node($object),
           'class' => $object->is_dir ? 'folder' : 'file',
         ),
-        'date' => $item_data->date ? t('@time ago', array('@time' => format_interval(time() - $item_data->date))) : '',
-        'author' => $item_data->committer ? $item_data->committer : '',
+        'date' => isset($item_data->date) ? t('@time ago', array('@time' => format_interval(time() - $item_data->date))) : '',
+        'author' => isset($item_data->committer) ? $item_data->committer : '',
         'commit' => $commit_link ? $commit_link : '',
         'message' => $message_link,
       ),
@@ -378,6 +385,7 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   }
   // TODO: We should be able to get the next commit from our MySQL data.
   //$next_commit_link = git_repository_viewer_get_link(t('next commit'), array('commit' => sha1_hex($repo_data['previous_commits'])));
+  $next_commit_link = '';
 
   // Get the parent folder.
   $parent_folder_path = explode('/', $repo_data['path']);
