@@ -23,6 +23,19 @@ function git_repository_viewer_menu() {
     'page arguments' => array(2),
     'access arguments' => array('browse all versioncontrol repositories'),
   );
+  $menu['admin/settings/git-repository-viewer'] = array(
+    'title' => 'Administer Git Repository Viewer',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('git_repository_viewer_settings_form'),
+    'access arguments' => array('administer repoisitory viewer'),
+    'file' => 'git_repository_viewer_admin.inc',
+  );
+  $menu['git-repository-viewer/data-service'] = array(
+    'title' => 'Git Diff',
+    'page callback' => 'git_repository_viewer_view_commit',
+    'page arguments' => array(2),
+    'access arguments' => array('access repository data service'),
+  );
   return $menu;
 }
 
