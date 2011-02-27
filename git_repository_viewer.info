@@ -14,3 +14,4 @@ files[] = glip/lib/git_commit_stamp.class.php
 files[] = glip/lib/git_object.class.php
 files[] = glip/lib/git_tree.class.php
 files[] = glip/lib/glip.php
+files[] = includes/GitRepoViewerLocalGlip.inc

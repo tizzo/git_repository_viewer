@@ -91,8 +91,13 @@ function git_repository_viewer_view_repository_title_callback($versioncontol_rep
 function git_repository_viewer_get_repository_page_details($versioncontol_repository = FALSE) {
   static $repository_data = FALSE;
   if ($repository_data == FALSE && $versioncontol_repository != FALSE) {
+
+    // TODO: deprecate this!
     // Get a Glip repository object for this repository.
     $glip_repo = new Git($versioncontol_repository->root);
+
+    // Get the handler from with which to load repo data.
+    $handler = git_repository_viewer_handler_factory();
     // Get information about what path within the repository we are viewing.
     $path = isset($_GET['path']) ? $_GET['path'] : '';
     $branch = isset($_GET['branch']) ? $_GET['branch'] : FALSE;
@@ -102,6 +107,7 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
       // TODO: make this less dumb?
       $branch = 'master';
     }
+    $data = $handler->getRepoData($path);
     // If we do not yet have a SHA-1 hash of the commit to view, find it now.
     if (!$commit) {
       $commit = $glip_repo->getTip($branch);
@@ -396,5 +402,13 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   // Build the history link.
   $history = module_exists('commitlog') ? l(t('history'), 'commitlog/repository/' . $repo_data['repository']->repo_id) : NULL;
 
-  return theme('git_repository_viewer_navigation', $previous_commit_link, $next_commit_link, $parent_folder_link, $history);
+  return theme('git_repository_viewer_navigation', $previous_commit_link, $next_commit_link, $parent_folder_link, $history, $branches_form);
+}
+
+/**
+ *
+ */
+function git_repository_viewer_handler_factory() {
+  $handler = new GitRepoViewerLocalGlip;
+  return $handler;
 }
