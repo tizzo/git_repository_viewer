@@ -10,14 +10,19 @@
   float: right;
   display: float;
 }
+
 .git-repo-nav div {
   display: inline;
   padding: 1em 0 1em 0;
 }
 
-
 .git-repo-nav .commit-links .next-commit-link {
   padding-left: 1em;
+}
+
+.git-repo-nav .repo-branches-form {
+  float: left;
+  margin-top: 2em;
 }
 
 .git-repo-nav .folder-links {

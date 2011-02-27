@@ -48,6 +48,7 @@ function git_repository_viewer_theme() {
         'next_commit_link' => NULL,
         'parent_folder_link' => NULL,
         'history' => NULL,
+        'branches_form' => '',
       ),
     ),
     'git_repository_viewer_view_directory' => array(
@@ -104,8 +105,7 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
     $commit = isset($_GET['commit']) ? $_GET['commit'] : FALSE;
     // If we don't have a textual representation of the branch needed, find a default.
     if (!$branch) {
-      // TODO: make this less dumb?
-      $branch = 'master';
+      $branch = array_shift($versioncontol_repository->loadBranches())->name;
     }
     $data = $handler->getRepoData($path);
     // If we do not yet have a SHA-1 hash of the commit to view, find it now.
@@ -227,6 +227,20 @@ function git_repository_viewer_get_object_from_path($repo_data) {
     }
   }
   return $object;
+}
+
+function git_repository_viewer_branch_form($form_state, $repo_data) {
+  $options = array();
+  foreach ($repo_data['repository']->loadBranches() as $branch) {
+    $options[$branch->name] = $branch->name;
+  }
+  $form['branches'] = array(
+    '#title' => t('Branches'),
+    '#type' => 'select',
+    '#options' => $options,
+    '#default_value' => $repo_data['branch'],
+  );
+  return $form;
 }
 
 /**
@@ -379,11 +393,14 @@ function git_repository_viewer_view_commit(VersioncontrolGitRepository $versionc
 }
 
 /**
- * Build the links necessary for the browser navigation and print them on the page.
+ * Build the links necessary for the browser navigation.
  */
 function git_repository_viewer_get_browser_navigation(array $repo_data) {
 
   drupal_add_css(drupal_get_path('module', 'git_repository_viewer') . '/css/navigation.css');
+  drupal_add_js(drupal_get_path('module', 'git_repository_viewer') . '/js/git_repo_viewer.js');
+
+  $branches_form = drupal_get_form('git_repository_viewer_branch_form', $repo_data);
 
   // Look up previous commit.
   if ($repo_data['previous_commits'][0] != '') {
