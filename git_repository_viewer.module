@@ -32,7 +32,7 @@ function git_repository_viewer_menu() {
   );
   $menu['git-repository-viewer/data-service'] = array(
     'title' => 'Git Diff',
-    'page callback' => 'git_repository_viewer_view_commit',
+    'page callback' => 'git_repository_viewer_data_service',
     'page arguments' => array(2),
     'access arguments' => array('access repository data service'),
   );
@@ -413,4 +413,11 @@ function git_repository_viewer_handler_factory(VersioncontrolRepository $version
     $handlers[$versioncontrol_repository->repo_id] = new GitRepoViewerLocalGlip;
   }
   return $handlers[$versioncontrol_repository->repo_id];
+}
+
+/**
+ * Page callback
+ */
+function git_repository_viewer_data_service() {
+
 }
