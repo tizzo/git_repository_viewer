@@ -61,10 +61,7 @@ interface GitRepoViewerInterface {
 
 }
 
-class GitRepoViewerRemoteGlip {
-}
-
-class GitRepoViewerLocalGlip {
+class GitRepoViewerLocalGlip implements GitRepoViewerInterface {
   
   public function __construct() {
   }
@@ -213,5 +210,82 @@ class GitRepoViewerLocalGlip {
     catch (Exception $e) {
       return FALSE;
     }
+  }
+}
+
+class GitRepoViewerRemoteGlip implements GitRepoViewerInterface {
+
+  /** 
+   *
+   */
+  public function __construct() {
+  }
+
+  /**
+   * Get all relevant metadata about a repository object.
+   */
+  public function getRepoData($path, $branch, $commit = FALSE) {
+
+  }
+
+  /** 
+   * Get a representation of an Object within the Git Repository.
+   *
+   * @param string $repo_location
+   *   The path to the actual repository on disk.
+   * @param string $path
+   *   The path withihin the repository for which we are trying to retrieve an object.
+   * @param string $branch
+   *   The branch on which we are trying to view this object.
+   *   TODO: This is here out of a vague suspicion that it'll be critical for svn
+   *   (if this is abstracted that far).  Should it be?
+   * @param string $commit
+   *   The revision at which we are trying to view this object.
+   *
+   * @return mixed
+   *   On failure, FALSE.
+   *   On success, a stdClass object whose attributes are as follows:
+   *     @code
+   *        // The name of this element.
+   *        $data->name '';
+   *        // The type of this element, either file or directory.
+   *        $data->type '';
+   *        // The contents of this element, for files the content of the file for
+   *        // directories a multidimmenstional array.
+   *        $data->contents '';
+   *     @endcode
+   */
+  public function getObject($repo_location, $path, $branch, $commit) {
+  }
+
+  /** 
+   * Get a representation of an Object within the Git Repository.
+   *
+   * @param string $repo_location
+   *   The path to the actual repository on disk.
+   * @param string $branch
+   *   The branch on which we are trying to view this object.
+   *   TODO: This is here out of a vague suspicion that it'll be critical for svn
+   *   (if this is abstracted that far).  Should it be?
+   * @param string $commit
+   *   The revision at which we are trying to view this object.
+   *
+   * @return string
+   *   The contents of the commit.
+   */
+  public function getCommit($repo_location, $branch, $commit) {
+  }
+
+  /**
+   * Send a 
+   */
+  private function sendRequest($method, $data) {
+    $post_data['method'] = $method;
+    $post_data['data'] = $data;
+    $response_data = drupal_http_request($this->remoteURL, array('Content-Type' => 'application/x-www-form-urlencoded'), 'POST', http_build_query($post_data));
+    if (!$data = $response_data->data) {
+      throw new Exception('Invalid data received from remote.');
+    }
+    return $response_data->result;
   }
 }

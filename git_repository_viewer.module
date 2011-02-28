@@ -103,7 +103,7 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
   if ($repository_data == FALSE && $versioncontol_repository != FALSE) {
 
     // Get the handler from with which to load repo data.
-    $handler = git_repository_viewer_handler_factory();
+    $handler = git_repository_viewer_handler_factory($versioncontol_repository);
     // Get information about what path within the repository we are viewing.
     $path = isset($_GET['path']) ? $_GET['path'] : '';
     $branch = isset($_GET['branch']) ? $_GET['branch'] : FALSE;
@@ -133,7 +133,7 @@ function git_repository_viewer_get_repository_page_details($versioncontol_reposi
 /**
  * Page callback for git_repository_viewer.
  */
-function git_repository_viewer_view_repository(VersioncontrolGitRepository $versioncontol_repository) {
+function git_repository_viewer_view_repository(VersioncontrolRepository $versioncontol_repository) {
 
   // Get the repository data for this particular repository.
   $repo_data = git_repository_viewer_get_repository_page_details($versioncontol_repository);
@@ -194,7 +194,7 @@ function git_repository_viewer_get_link($name, $other_data = array()) {
  *
  */
 function git_repository_viewer_get_object_from_path($repo_data) {
-  $object = git_repository_viewer_handler_factory()->getObject($repo_data['repository']->root, $repo_data['path'], $repo_data['branch'], $repo_data['commit']);
+  $object = git_repository_viewer_handler_factory($repo_data['repository'])->getObject($repo_data['repository']->root, $repo_data['path'], $repo_data['branch'], $repo_data['commit']);
   return $object;
 }
 
@@ -339,7 +339,7 @@ function git_repository_viewer_get_blob_type($name) {
 /**
  * View the contents of an individual commit.
  */
-function git_repository_viewer_view_commit(VersioncontrolGitRepository $versioncontrol_repository) {
+function git_repository_viewer_view_commit(VersioncontrolRepository $versioncontrol_repository) {
   // Sanity check to make sure that this commit id is only numbers and letters
   // and does not attempt to execute aribtrary code on our 'git-show system call'
   if (preg_match('/^[a-zA-Z0-9]+$/', $_GET['commit']) && ctype_xdigit($_GET['commit'])) {
@@ -393,10 +393,11 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
  *
  * TODO: Make this configurable so that a remote handler can be used.
  */
-function git_repository_viewer_handler_factory() {
-  static $handler = FALSE;
-  if (!$handler) {
-    $handler = new GitRepoViewerLocalGlip;
+function git_repository_viewer_handler_factory(VersioncontrolRepository $versioncontrol_repository) {
+  static $handlers = array();
+  if (isset($versioncontrol_repository->repo_id) && is_numeric($versioncontrol_repository->repo_id) && !isset($handlers[$versioncontrol_repository->repo_id])) {
+    // TODO: Determine the handler to use here.
+    $handlers[$versioncontrol_repository->repo_id] = new GitRepoViewerLocalGlip;
   }
-  return $handler;
+  return $handlers[$versioncontrol_repository->repo_id];
 }
