@@ -300,7 +300,10 @@ function theme_git_repository_viewer_view_file($file_contents, $name) {
 }
 
 function git_repository_viewer_format_text($text, $type) {
-  if (module_exists('geshifilter')) {
+  if (strtolower($type) == 'md' || strtolower($type) == 'mdown' && module_exists('markdown')) {
+    $output = _markdown_process($text, '');
+  }
+  elseif (module_exists('geshifilter')) {
     module_load_include('inc', 'geshifilter', 'geshifilter.pages');
     $output = geshifilter_process($text, $type, TRUE);
   }

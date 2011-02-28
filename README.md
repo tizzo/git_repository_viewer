@@ -12,5 +12,6 @@ It is currently under active development and is currently unstable.  Feel free t
 
 ## For best results
 
-Download and install the [Geshi Filter Module](http://drupal.org/project/geshifilter)
+1.  Download and install the [Geshi Filter Module](http://drupal.org/project/geshifilter)
+1.  Download and install the [Markdown Filter Module](http://drupal.org/project/markdown)
 
