@@ -63,6 +63,15 @@ function git_repository_viewer_theme() {
         'name' => '',
       ),
     ),
+    'git_repository_viewer_view_image' => array(
+      'template' => 'git-repo-viewer-view-image',
+      'path' => $template_path,
+      'arguments' => array(
+        'image_data' => '',
+        'type' => '',
+      ),
+    ),
+
   );
 }
 
@@ -136,11 +145,10 @@ function git_repository_viewer_view_repository(VersioncontrolGitRepository $vers
 
   // Determine whether we are trying to view a folder or a file.
   if ($data->type == 'directory') {
-    // TODO: Create table of files and folders
     $content = theme('git_repository_viewer_view_directory', $data->contents, $name);
   }
   elseif ($data->type == 'file') {
-    $content = theme('git_repository_viewer_view_file', $object, $name);
+    $content = theme('git_repository_viewer_view_file', $data->contents, $name);
   }
   // If we have neither a directory or a file, return page not found.
   else {
@@ -287,14 +295,11 @@ function theme_git_repository_viewer_view_file($file_contents, $name) {
     'ico',
   );
   if (in_array($type, $image_extensions)) {
-    // TODO: turn this into a theme function.
-    $output = '<div class="git-repo-image-wrapper">';
-    $output .= '<img src="data:image/' . $type . ';base64,' . base64_encode($blob->data) . '">';
-    $output .= '</div>';
+    $output = theme('git_repository_viewer_view_image', base64_encode($file_contents), $type);
   }
   else {
     // TODO: turn this into a theme function?
-    $output = git_repository_viewer_format_text($blob->data, $type);
+    $output = git_repository_viewer_format_text($file_contents, $type);
   }
   return $output;
 }
@@ -338,7 +343,6 @@ function git_repository_viewer_view_commit(VersioncontrolGitRepository $versionc
   // Sanity check to make sure that this commit id is only numbers and letters
   // and does not attempt to execute aribtrary code on our 'git-show system call'
   if (preg_match('/^[a-zA-Z0-9]+$/', $_GET['commit']) && ctype_xdigit($_GET['commit'])) {
-    dpm($_GET['commit']);
     $data = git_repository_viewer_get_repository_page_details($versioncontrol_repository);
     if ($commit_diff = git_repository_viewer_handler_factory()->getCommit($data['repository']->root, $data['branch'], sha1_hex($data['commit']))) {
       $output = git_repository_viewer_format_text($commit_diff, 'diff');
@@ -385,7 +389,7 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
 }
 
 /**
- * A factory method for 
+ * A factory method for repository viewer handlers.
  *
  * TODO: Make this configurable so that a remote handler can be used.
  */

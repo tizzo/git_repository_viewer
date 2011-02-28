@@ -144,7 +144,8 @@ class GitRepoViewerLocalGlip {
     if (count($path) && $path[0] != '') {
       foreach ($path as $item) {
         if (array_key_exists($item, $object->nodes)) {
-          $object = $glip_repo->getObject($object->nodes[$item]->object);
+          $item_hash = $object->nodes[$item]->object;
+          $object = $glip_repo->getObject($item_hash);
           $data->name = $item;
         }
         else {
@@ -160,8 +161,8 @@ class GitRepoViewerLocalGlip {
         // because we may want to use other libraries (or even non-git repos)
         // at some point.
         $data->contents[$name] = array(
-          'directory' => $node->is_dir,
           'name' => $name,
+          'directory' => $node->is_dir,
           'mode' => $node->mode,
           'submodule' => $node->is_submodule,
           'object_id' => sha1_hex($node->object),
@@ -170,6 +171,9 @@ class GitRepoViewerLocalGlip {
     }
     elseif (get_class($object) == 'GitBlob') {
       $data->type = 'file';
+      $data->object_id = sha1_hex($item_hash);
+      $data->name = $item;
+      $data->contents = $object->data;
     }
     return $data;
   }
