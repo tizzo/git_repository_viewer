@@ -53,7 +53,13 @@ Drupal.gitRepoViewer.lineNumberClick = function() {
   }
   // If we have a low but not a high, set the high.
   else if (Drupal.gitRepoViewer.lowNumber != 0 && Drupal.gitRepoViewer.highNumber == 0) {
-    Drupal.gitRepoViewer.highNumber = clickedLineNumber;
+    if (clickedLineNumber < Drupal.gitRepoViewer.lowNumber) {
+      Drupal.gitRepoViewer.highNumber = Drupal.gitRepoViewer.lowNumber;
+      Drupal.gitRepoViewer.lowNumber = clickedLineNumber;
+    }
+    else {
+      Drupal.gitRepoViewer.highNumber = clickedLineNumber;
+    }
     $('#edit-filter-token').val(Drupal.gitRepoViewer.filterToken + '-' + Drupal.gitRepoViewer.lowNumber + ':' + Drupal.gitRepoViewer.highNumber + ']');
     Drupal.gitRepoViewer.setSelection(Drupal.gitRepoViewer.lowNumber, Drupal.gitRepoViewer.highNumber);
   }
