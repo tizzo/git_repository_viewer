@@ -72,23 +72,25 @@ class GitRepoViewerLocalGlip implements GitRepoViewerInterface {
   public function getRepoData($repo_location, $branch, $commit = FALSE) {
     $data = array();
     // Get a Glip repository object for this repository.
-    $data['glip_repo'] = $glip_repo = new Git($repo_location);
+    $glip_repo = new Git($repo_location);
 
     // If we do not yet have a SHA-1 hash of the commit to view, find it now.
     if (!$commit) {
-      $commit = $glip_repo->getTip($branch);
+      $commit = sha1_hex($glip_repo->getTip($branch));
     }
     else {
-      $commit = sha1_bin($commit);
+      $commit = $commit;
     }
     $data['commit'] = $commit;
     
     $parents = array();
     try {
-      $parents = $glip_repo->getObject($commit)->parents;
+      foreach ($glip_repo->getObject(sha1_bin($commit))->parents as $parent) {
+        $parents[] = sha1_hex($parent);
+      }
     }
     catch (Exception $e) {
-      $error = t('Object %sha1 could not be found in repository %repo_id', array('%sha1' => sha1_hex($commit), '%repo_id' => $versioncontol_repository->repo_id));
+      $error = t('Object %sha1 could not be found in repository at path %path', array('%sha1' => sha1_hex($commit), '%path' => $repo_location));
       watchdog('git_repository_viewer', $error);
     }
 
@@ -125,6 +127,7 @@ class GitRepoViewerLocalGlip implements GitRepoViewerInterface {
    *     @endcode
    */
   public function getObject($repo_location, $path, $branch, $commit) {
+    $commit = sha1_bin($commit);
     $data = new stdClass;
     $glip_repo = new Git($repo_location);
     try {
@@ -146,7 +149,7 @@ class GitRepoViewerLocalGlip implements GitRepoViewerInterface {
           $data->name = $item;
         }
         else {
-          return $false;
+          return FALSE;
         }
       }
     }
@@ -198,7 +201,7 @@ class GitRepoViewerLocalGlip implements GitRepoViewerInterface {
       $diff_command = "git show '{$commit}'";
       $output = array();
       $return = FALSE;
-      $diff = exec($diff_command, $output, $return);
+      $diff = shell_exec($diff_command);
       chdir($cwd);
       if (!$return) {
         return $diff;

@@ -3,6 +3,9 @@
 /**
  * @file
  *   git_repository_viewer provides a simple git repository browser.
+ *
+ * TODO:
+ *   Get rid of calls to sha1_hex() and sha1_bin().
  */
 
 /**
@@ -294,25 +297,37 @@ function git_repository_viewer_view_repository(VersioncontrolRepository $version
   // Get the repository data for this particular repository.
   $repo_data = git_repository_viewer_get_repository_page_details($versioncontol_repository);
 
-  // Get the object we are trying to view.
-  $data = git_repository_viewer_get_object_from_path($repo_data);
+  if (!$content = git_repository_viewer_view_object_from_path($repo_data)) {
+    drupal_not_found();
+  }
 
-  $name = $data->name ? $data->name : $versioncontol_repository->name;
+  $navigation = git_repository_viewer_get_browser_navigation($repo_data);
+
+  return theme('git_repository_browser', $navigation, $content);
+}
+
+/**
+ *
+ */
+function git_repository_viewer_view_object_from_path($repo_data) {
+
+  // Get the object we are trying to view.
+  if (!$data = git_repository_viewer_get_object_from_path($repo_data)) {
+    return FALSE;
+  }
+  $name = $data->name ? $data->name : $repo_data['repository']->name;
 
   // Determine whether we are trying to view a folder or a file.
   if ($data->type == 'directory') {
-    $content = theme('git_repository_viewer_view_directory', $data->contents, $name);
+    return $content = theme('git_repository_viewer_view_directory', $data->contents, $name);
   }
   elseif ($data->type == 'file') {
-    $content = theme('git_repository_viewer_view_file', $data->contents, $name);
+    return $content = theme('git_repository_viewer_view_file', $data->contents, $name);
   }
   // If we have neither a directory or a file, return page not found.
   else {
-    drupal_not_found();
-    return;
+    return FALSE;
   }
-  $navigation = git_repository_viewer_get_browser_navigation($repo_data);
-  return theme('git_repository_browser', $navigation, $content);
 }
 
 /**
@@ -328,7 +343,7 @@ function git_repository_viewer_get_link_to_node($node, $other_data = array()) {
     $other_data['branch'] = $info['branch'];
   }
   if (isset($info['commit'])) {
-    $other_data['commit'] = sha1_hex($info['commit']);
+    $other_data['commit'] = $info['commit'];
   }
   $other_data['path'] = $other_data['path'] . $node['name'];
   $name = $node['name'];
@@ -354,6 +369,9 @@ function git_repository_viewer_get_object_from_path($repo_data) {
   return $object;
 }
 
+/**
+ *
+ */
 function git_repository_viewer_branch_form($form_state, $repo_data) {
   $options = array();
   foreach ($repo_data['repository']->loadBranches() as $branch) {
@@ -417,6 +435,15 @@ function theme_git_repository_viewer_view_directory($contents, $name) {
     else {
       $message_link = '';
     }
+    if (isset($item_data->committer_uid) && $item_data->committer_uid != 0) {
+      $author = l(user_load($item_data->committer_uid)->name, 'user/' . $item_data->committer_uid);
+    }
+    elseif (isset($item_data->committer)) {
+      $author = $item_data->committer;
+    }
+    else {
+      $author = '';
+    }
     $rows[] = array(
       'data' => array(
         'name' => array(
@@ -424,7 +451,7 @@ function theme_git_repository_viewer_view_directory($contents, $name) {
           'class' => $item['directory'] ? 'folder' : 'file',
         ),
         'date' => isset($item_data->date) ? t('@time ago', array('@time' => format_interval(time() - $item_data->date))) : '',
-        'author' => isset($item_data->committer) ? $item_data->committer : '',
+        'author' => $author,
         'commit' => isset($commit_link) ? $commit_link : '',
         'message' => $message_link,
       ),
@@ -500,7 +527,7 @@ function git_repository_viewer_view_commit(VersioncontrolRepository $versioncont
   // and does not attempt to execute aribtrary code on our 'git-show system call'
   if (preg_match('/^[a-zA-Z0-9]+$/', $_GET['commit']) && ctype_xdigit($_GET['commit'])) {
     $data = git_repository_viewer_get_repository_page_details($versioncontrol_repository);
-    if ($commit_diff = git_repository_viewer_handler_factory()->getCommit($data['repository']->root, $data['branch'], sha1_hex($data['commit']))) {
+    if ($commit_diff = git_repository_viewer_handler_factory($versioncontrol_repository)->getCommit($data['repository']->root, $data['branch'], $data['commit'])) {
       $output = git_repository_viewer_format_text($commit_diff, 'diff');
       return $output;
     }
@@ -525,8 +552,11 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   $branches_form = drupal_get_form('git_repository_viewer_branch_form', $repo_data);
 
   // Look up previous commit.
-  if ($repo_data['previous_commits'][0] != '') {
-    $previous_commit_link = git_repository_viewer_get_link(t('previous commit'), array('commit' => sha1_hex($repo_data['previous_commits'][0])));
+  if (isset($repo_data['previous_commits'][0]) && $repo_data['previous_commits'][0] != '') {
+    $previous_commit_link = git_repository_viewer_get_link(t('previous commit'), array('commit' => $repo_data['previous_commits'][0]));
+  }
+  else {
+    $previous_commit_link = '';
   }
   // TODO: We should be able to get the next commit from our MySQL data.
   //$next_commit_link = git_repository_viewer_get_link(t('next commit'), array('commit' => sha1_hex($repo_data['previous_commits'])));
