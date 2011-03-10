@@ -159,6 +159,7 @@ function git_repository_viewer_theme() {
 function git_repository_viewer_perm() {
   return array(
     'browse all versioncontrol repositories',
+    'administer repoisitory viewer',
   );
 }
 
@@ -592,5 +593,5 @@ function git_repository_viewer_handler_factory(VersioncontrolRepository $version
  * Page callback
  */
 function git_repository_viewer_data_service() {
-
+  return NULL;
 }
