@@ -535,6 +535,9 @@ function git_repository_viewer_format_text($text, $type) {
   }
   elseif (module_exists('geshifilter')) {
     module_load_include('inc', 'geshifilter', 'geshifilter.pages');
+    $available_languages = _geshifilter_get_available_languages();
+    // Prevent a php undefined inex notice resulting from asking geshi to handle a type it doesn't understand.
+    isset($available_languages[$type]['language_path']) ? $type = $type : $type = 'text';
     $output = geshifilter_process($text, $type, TRUE);
   }
   else {
@@ -592,9 +595,7 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   drupal_add_js(drupal_get_path('module', 'git_repository_viewer') . '/js/git_repo_viewer.js');
 
   $branches_form = drupal_get_form('git_repository_viewer_branch_form', $repo_data);
-  if ($repo_data['path'] != '') {
-    $input_format_token_form = drupal_get_form('git_repository_viewer_input_token_form', $repo_data);
-  }
+  $repo_data['path'] != '' ? $input_format_token_form = drupal_get_form('git_repository_viewer_input_token_form', $repo_data) : $input_format_token_form = '';
 
   // Look up previous commit.
   if (isset($repo_data['previous_commits'][0]) && $repo_data['previous_commits'][0] != '') {
