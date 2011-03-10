@@ -56,7 +56,7 @@ function git_repository_viewer_block($op = 'list', $delta = 0, $edit = array()) 
       );
       return $blocks;
     case 'view':
-      if ($delta == 'commit_list' && arg(0) == 'git-repository-viewer') {
+      if ($delta == 'commit_list' && arg(0) == 'git-repository-viewer' && user_access('browse all versioncontrol repositories')) {
         $items = git_repository_viewer_commit_list_block();
         return array(
           'title' => t('Commits'),
