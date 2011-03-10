@@ -160,6 +160,87 @@ function git_repository_viewer_perm() {
 }
 
 /**
+ * Implementation of hook_filter().
+ */
+function git_repository_viewer_filter($op, $delta = 0, $format = -1, $text = '') {
+  switch ($op) {
+    case 'list':
+      return array(
+        t('Version Control References'),
+      );
+    case 'description':
+      switch ($delta) {
+        case 0:
+          return t('');
+        default:
+          return;
+      }
+
+    case 'process':
+      switch ($delta) {
+        case 0:
+          return git_repository_viewer_filter_process($text);
+        default:
+          return $text;
+      }
+
+    default:
+      return $text;
+  }
+}
+
+// TODO this is really the preg callback.
+function git_repository_viewer_filter_process($text) {
+  // TODO: don't let directories be referenced
+  // TODO: add line number range support (esp nice for diffs)
+  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]]
+  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)\]/', 'git_repository_viewer_filter_process', $sometext);
+  // TODO: This should go first?
+  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[branch]]
+  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-(.*)\]/', 'git_repository_viewer_filter_process', $sometext);
+  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[branch]-[line-number]:[line-number]]
+  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-(.*)-[n+]:[n+]\]/', 'git_repository_viewer_filter_process', $sometext);
+  return $output;
+}
+
+/**
+ * Callback for preg_replace that actually gets contents.
+ */
+function git_repository_viewer_filter_process_callback($elements) {
+  // If we have more than three elements, we have what we need.
+  if (count($elements) >= 3) {
+    $repo_data['repository'] = versioncontrol_repository_load($elements[1]);
+    $repo_data['path'] = $elements[2];
+    if (count($elements) > 3) {
+      $repo_data['branch'] = $elements[3];
+    }
+    // If we don't have a textual representation of the branch needed, find a default.
+    // Currently the default loaded is the most recent we know about.
+    else {
+      $repo_data['branch'] = array_shift($repo_data['repository']->loadBranches())->name;
+    }
+    // TODO: consider whether we should find the most recent commit from the DB instead.
+    $handler = git_repository_viewer_handler_factory($repo_data['repository']);
+    $data = $handler->getRepoData($repo_data['repository']->root, $repo_data['branch']);
+    $repo_data['commit'] = $data['commit'];
+    $repo_data['parents'] = $data['parents'];
+    //dpm($data);
+    //dpm($repo_data);
+    // TODO: Don't let us do this with trees.
+    // TODO: consider getting the content and rendering it separately.
+    $content = git_repository_viewer_view_object_from_path($repo_data);
+    if (count($elements) == 6) {
+      if ($start_line = $elements[4] < $end_line = $elements[5]) {
+        // TODO: break up the line numbers.
+        $content = explode('\n');
+        $content = '';
+      }
+    }
+    return $content;
+  }
+}
+
+/**
  * Title callback for git_repository_viewer.
  */
 function git_repository_viewer_view_repository_title_callback($versioncontol_repository) {
