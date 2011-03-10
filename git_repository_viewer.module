@@ -243,7 +243,7 @@ function git_repository_viewer_filter_process_callback($elements) {
       $content = $data->contents;
     }
     if (count($elements) == 6) {
-      if ($start_line = $elements[4] < $end_line = $elements[5]) {
+      if (($start_line = $elements[4]) < ($end_line = $elements[5])) {
         $text_elements = explode("\n", $content);
         $i = $start_line - 1; 
         $content = array();
@@ -596,7 +596,11 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
 
   // Look up previous commit.
   if (isset($repo_data['previous_commits'][0]) && $repo_data['previous_commits'][0] != '') {
-    $previous_commit_link = git_repository_viewer_get_link(t('previous commit'), array('commit' => $repo_data['previous_commits'][0]));
+    $link_data = array('commit' => $repo_data['previous_commits'][0]);
+    if (isset($repo_data['path'])) {
+      $link_data['path'] = $repo_data['path'];
+    }
+    $previous_commit_link = git_repository_viewer_get_link(t('previous commit'), $link_data);
   }
   else {
     $previous_commit_link = '';
