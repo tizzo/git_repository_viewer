@@ -401,20 +401,27 @@ function theme_git_repository_viewer_view_directory($contents, $name) {
     t('Message'),
   );
   // WE NEED TO FIND OUR PATHS FROM THE ROOT REPOSITORY HERE...
+  // TODO: figure out what this actually meant and if it's already done?
   $data = git_repository_viewer_get_repository_page_details();
   $paths = array();
   $base_path = $data['path'] == '' ? '' : '/' . $data['path'];
   foreach ($contents as $name => $value) {
     $paths[] = $base_path . '/' . $name;
   }
+  // TODO: Right now relying on data coming into the db in a specific order.  We need
+  // to make sure this is the case (on d.o right now this WILL NOT WORK).
+  $op_id = dbtng_query('SELECT vc_op_id FROM {versioncontrol_operations} WHERE revision=:commit', array(':commit' => $data['commit']))->fetchField();
   $query = db_select('versioncontrol_item_revisions', 'vir')
     ->condition('vir.path', $paths, 'IN')
     ->condition('vir.repo_id', $data['repository']->repo_id);
   $query->join('versioncontrol_operations', 'vo', 'vir.vc_op_id = vo.vc_op_id');
-  // TODO: make sure we're getting what we want here...
+  $query->join('versioncontrol_operation_labels', 'vol', 'vo.vc_op_id = vol.vc_op_id');
+  $query->join('versioncontrol_labels', 'vl', 'vol.label_id = vl.label_id');
   $results = $query
     ->fields('vir', array('path', 'revision'))
-    ->fields('vo', array('date', 'committer', 'message'))
+    ->fields('vo', array('date', 'committer', 'committer_uid', 'message'))
+    ->condition('vl.name', $data['branch'])
+    ->condition('vo.vc_op_id', $op_id, '<=')
     ->distinct('path')
     ->addTag('git_repository_viewer_directory_list_metadata')
     ->execute()
