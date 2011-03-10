@@ -38,6 +38,7 @@ function git_repository_viewer_menu() {
     'page callback' => 'git_repository_viewer_data_service',
     'page arguments' => array(2),
     'access arguments' => array('access repository data service'),
+    'type' => MENU_CALLBACK,
   );
   return $menu;
 }
@@ -93,7 +94,6 @@ function git_repository_viewer_commit_list_block() {
     ->range(0, 10 - count($before_results))
     ->execute()
     ->fetchAll();
-    dpm(array($before_results, $after_results));
   $results = array_merge($before_results, $after_results);
   $items = array();
   $git_backend = new VersioncontrolGitBackend;
@@ -176,7 +176,7 @@ function git_repository_viewer_filter($op, $delta = 0, $format = -1, $text = '')
     case 'description':
       switch ($delta) {
         case 0:
-          return t('');
+          return t('Allows users to insert tokens that load content from Versioncontrol Repositories.');
         default:
           return;
       }
@@ -196,16 +196,27 @@ function git_repository_viewer_filter($op, $delta = 0, $format = -1, $text = '')
 
 // TODO this is really the preg callback.
 function git_repository_viewer_filter_process($text) {
-  // TODO: don't let directories be referenced
-  // TODO: add line number range support (esp nice for diffs)
+  /*
+  // TODO: tweak the regex, we may need to use a lookahead so that this doesn't match things it shouldn't.
+  // We also need more validation.
   // Filter for [vcs-[vcs_repo_id]-[path-in-repo]]
-  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)\]/', 'git_repository_viewer_filter_process', $sometext);
-  // TODO: This should go first?
-  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[branch]]
-  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-(.*)\]/', 'git_repository_viewer_filter_process', $sometext);
-  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[branch]-[line-number]:[line-number]]
-  $output = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-(.*)-[n+]:[n+]\]/', 'git_repository_viewer_filter_process', $sometext);
-  return $output;
+  if (preg_match('/\[vcs-([0-9]+)-(.*)\]/Ui', $text)) {
+    $text = preg_replace_callback('/\[vcs-([0-9]+)-(.*)\]/i', 'git_repository_viewer_filter_process_callback', $text);
+  }
+  */
+  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[commit]]
+  if (preg_match('/\[vcs-([0-9]+)-(.*)-([a-z0-9]+)\]/i', $text)) {
+    $text = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-([a-z0-9]+)\]/', 'git_repository_viewer_filter_process_callback', $text, -1, $count);
+  }
+  // Filter for [vcs-[vcs_repo_id]-[path-in-repo]-[commit]-[line-number]:[line-number]]
+  if (preg_match('/\[vcs-([0-9]+)-(.*)-([a-z0-9]+)-([0-9]+):([0-9]+)\]/i', $text)) {
+    $text = preg_replace_callback('/\[vcs-([0-9]+)-(.*)-([a-z0-9]+)-([0-9]+):([0-9]+)\]/i', 'git_repository_viewer_filter_process_callback', $text, -1, $count);
+  }
+  return $text;
+}
+
+function git_repository_viewer_init() {
+  cache_clear_all('*', 'cache_filter', TRUE);
 }
 
 /**
@@ -216,31 +227,38 @@ function git_repository_viewer_filter_process_callback($elements) {
   if (count($elements) >= 3) {
     $repo_data['repository'] = versioncontrol_repository_load($elements[1]);
     $repo_data['path'] = $elements[2];
+    $repo_data['branch'] = 'master';
+    $repo_data['commit'] = '';
+    // TODO: decide if we need to hand in branches at all.
     if (count($elements) > 3) {
-      $repo_data['branch'] = $elements[3];
+      $repo_data['commit'] = $elements[3];
     }
-    // If we don't have a textual representation of the branch needed, find a default.
-    // Currently the default loaded is the most recent we know about.
     else {
-      $repo_data['branch'] = array_shift($repo_data['repository']->loadBranches())->name;
+      $repo_data['commit'] = array_shift($repo_data['repository']->loadBranches())->name;
     }
     // TODO: consider whether we should find the most recent commit from the DB instead.
     $handler = git_repository_viewer_handler_factory($repo_data['repository']);
     $data = $handler->getRepoData($repo_data['repository']->root, $repo_data['branch']);
-    $repo_data['commit'] = $data['commit'];
-    $repo_data['parents'] = $data['parents'];
-    //dpm($data);
-    //dpm($repo_data);
-    // TODO: Don't let us do this with trees.
-    // TODO: consider getting the content and rendering it separately.
-    $content = git_repository_viewer_view_object_from_path($repo_data);
+    $data = git_repository_viewer_get_object_from_path($repo_data);
+    if ($data->type == 'directory') {
+      return '';
+    }
+    else {
+      $content = $data->contents;
+    }
     if (count($elements) == 6) {
       if ($start_line = $elements[4] < $end_line = $elements[5]) {
-        // TODO: break up the line numbers.
-        $content = explode('\n');
-        $content = '';
+        $text_elements = explode("\n", $content);
+        $i = $start_line - 1; 
+        $content = array();
+        while ($i <= $end_line) {
+          $content[] = $text_elements[$i];
+          $i++;
+        }
+        $content = implode("\n", $content);
       }
     }
+    $content = theme('git_repository_viewer_view_file', $content, $data->name);
     return $content;
   }
 }
