@@ -127,6 +127,7 @@ function git_repository_viewer_theme() {
         'parent_folder_link' => NULL,
         'history' => NULL,
         'branches_form' => '',
+        'input_format_token_form' => '',
       ),
     ),
     'git_repository_viewer_view_directory' => array(
@@ -388,6 +389,21 @@ function git_repository_viewer_branch_form($form_state, $repo_data) {
 }
 
 /**
+ *
+ */
+function git_repository_viewer_input_token_form($form_state, $repo_data) {
+  $form = array();
+  $filter_token = '[vcs-' . $repo_data['repository']->repo_id . '-' . $repo_data['path'] . '-' . $repo_data['commit'];
+  $filter_token .= ']';
+  $form['filter_token'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Input format token'),
+    '#default_value' => $filter_token,
+    '#size' => 160,
+  );
+  return $form;
+}
+/**
  * Default theme implementation for git_repository_viewer_view_directory.
  */
 function theme_git_repository_viewer_view_directory($contents, $name) {
@@ -558,6 +574,9 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   drupal_add_js(drupal_get_path('module', 'git_repository_viewer') . '/js/git_repo_viewer.js');
 
   $branches_form = drupal_get_form('git_repository_viewer_branch_form', $repo_data);
+  if ($repo_data['path'] != '') {
+    $input_format_token_form = drupal_get_form('git_repository_viewer_input_token_form', $repo_data);
+  }
 
   // Look up previous commit.
   if (isset($repo_data['previous_commits'][0]) && $repo_data['previous_commits'][0] != '') {
@@ -579,7 +598,7 @@ function git_repository_viewer_get_browser_navigation(array $repo_data) {
   // Build the history link.
   $history = module_exists('commitlog') ? l(t('history'), 'commitlog/repository/' . $repo_data['repository']->repo_id) : NULL;
 
-  return theme('git_repository_viewer_navigation', $previous_commit_link, $next_commit_link, $parent_folder_link, $history, $branches_form);
+  return theme('git_repository_viewer_navigation', $previous_commit_link, $next_commit_link, $parent_folder_link, $history, $branches_form, $input_format_token_form);
 }
 
 /**
