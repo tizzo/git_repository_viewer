@@ -40,6 +40,68 @@ function git_repository_viewer_menu() {
 }
 
 /**
+ * Implementation of hook_block().
+ */
+function git_repository_viewer_block($op = 'list', $delta = 0, $edit = array()) {
+  switch ($op) {
+    case 'list':
+      $blocks = array();
+      $blocks['commit_list'] = array(
+        'info' => t('Git Repository Viewer Commit List'),
+        'cache' => BLOCK_NO_CACHE,
+      );
+      return $blocks;
+    case 'view':
+      if ($delta == 'commit_list' && arg(0) == 'git-repository-viewer') {
+        $items = git_repository_viewer_commit_list_block();
+        return array(
+          'title' => t('Commits'),
+          'content' => theme('item_list', $items),
+        );
+      }
+      break;
+  }
+}
+
+/**
+ *
+ */
+function git_repository_viewer_commit_list_block() {
+  // TODO: consider whether we can make this with views?  (currently we can't without a lot of work)
+  // TODO: figure out if this is really working the way it is meant to.
+  // TODO: Comment this, it's definitely not obvious what it is trying to do.
+  $info = git_repository_viewer_get_repository_page_details();
+  $current_op_id = dbtng_query('SELECT vc_op_id FROM {versioncontrol_operations} WHERE revision=:commit', array(':commit' => $info['commit']))->fetchField();
+  $query = db_select('versioncontrol_operations', 'vo')
+    ->fields('vo', array('message', 'revision'));
+  $query->join('versioncontrol_operation_labels', 'vol', 'vo.vc_op_id = vol.vc_op_id');
+  $query->join('versioncontrol_labels', 'vl', 'vol.label_id = vl.label_id');
+  $query->condition('vl.name', $info['branch'])
+    ->condition('vo.repo_id', $info['repository']->repo_id);
+  $before = $query;
+  $before_results = $before->orderBy('vo.vc_op_id', 'DESC')
+    ->condition('vo.vc_op_id', $current_op_id, '>=')
+    ->range(0, 10)
+    ->execute()
+    ->fetchAll();
+  $after = $query;
+  $after_results = $before->orderBy('vo.vc_op_id', 'DESC')
+    ->condition('vo.vc_op_id', $current_op_id, '<')
+    ->range(0, 10 - count($before_results))
+    ->execute()
+    ->fetchAll();
+    dpm(array($before_results, $after_results));
+  $results = array_merge($before_results, $after_results);
+  $items = array();
+  $git_backend = new VersioncontrolGitBackend;
+  foreach ($results as $commit) {
+    $commit_link = git_repository_viewer_get_link($git_backend->formatRevisionIdentifier($commit->revision, 'short') . ': ' . check_plain($commit->message), array('commit' => $commit->revision));
+    $items[] = $commit_link;
+  }
+  return $items;
+}
+
+/**
  * Implementation of hook_theme().
  */
 function git_repository_viewer_theme() {
