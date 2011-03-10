@@ -21,8 +21,7 @@
 }
 
 .git-repo-nav .repo-branches-form {
-  float: left;
-  margin-top: 2em;
+  padding-top: 4em;
 }
 
 .git-repo-nav .folder-links {

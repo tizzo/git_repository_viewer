@@ -24,11 +24,11 @@
       <?php endif; ?>
     </div>
   <?php endif; ?>
-  <?php if ($branches_form): ?>
-    <div class="clear-block">
-      <div class="repo-branches-form">
-        <?php print $branches_form; ?>
-      </div>
-    </div>
-  <?php endif; ?>
+      <?php if ($branches_form): ?>
+        <div class="clear-block">
+          <div class="repo-branches-form">
+            <?php print $branches_form; ?>
+          </div>
+        </div>
+      <?php endif; ?>
 </div>

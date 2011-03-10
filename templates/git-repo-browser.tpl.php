@@ -7,7 +7,7 @@
 <div class="clear-block">
   <?php print $navigation; ?>
 </div>
-<div class="clear-block git-repo-browser-content">
+<div class="git-repo-browser-content clear-block">
   <?php print $content; ?>
 </div>
 <div class="clear-block">
