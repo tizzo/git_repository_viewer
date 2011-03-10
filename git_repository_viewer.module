@@ -412,6 +412,7 @@ function git_repository_viewer_input_token_form($form_state, $repo_data) {
   $form['filter_token'] = array(
     '#type' => 'textfield',
     '#title' => t('Input format token'),
+    '#description' => t('Copy this token to display this file using node text using the input formatter.  Click on the starting and ending lines first to display part of this file.'),
     '#default_value' => $filter_token,
     '#size' => 160,
   );

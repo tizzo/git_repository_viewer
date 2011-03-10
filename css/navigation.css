@@ -4,11 +4,12 @@
  */
 .git-repo-nav {
   width: 100%;
+  margin-top: 2em;
 }
 
 .git-repo-nav .commit-links {
-  float: right;
-  display: float;
+  position: absolute;
+  right: 2em;
 }
 
 .git-repo-nav div {
@@ -21,16 +22,20 @@
 }
 
 .git-repo-nav .repo-branches-form {
-  padding-top: 4em;
+  float: left;
+  margin-top: 2em;
 }
 
 .git-repo-nav .folder-links {
+  position: absolute;
+  left: 3em;
+}
+.git-repo-nav .input-format-token-form {
   float: left;
-  display: float;
 }
 
-.git-repo-nav .folder-links .history-link {
-  padding-left: 1em;
+.git-repo-nav #center form {
+  margin-bottom: 1em;
 }
 
 .git-repo-browser-content img {

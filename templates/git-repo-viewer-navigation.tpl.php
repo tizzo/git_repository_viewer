@@ -25,18 +25,17 @@
     </div>
   <?php endif; ?>
   <?php if ($branches_form): ?>
-    <div class="clear-block">
+    <div >
       <div class="repo-branches-form">
         <?php print $branches_form; ?>
       </div>
     </div>
   <?php endif; ?>
   <?php if ($input_format_token_form): ?>
-    <div class="clear-block">
+    <div>
       <div class="input-format-token-form">
         <?php print $input_format_token_form; ?>
       </div>
     </div>
   <?php endif; ?>
-
 </div>
