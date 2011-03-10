@@ -215,10 +215,6 @@ function git_repository_viewer_filter_process($text) {
   return $text;
 }
 
-function git_repository_viewer_init() {
-  cache_clear_all('*', 'cache_filter', TRUE);
-}
-
 /**
  * Callback for preg_replace that actually gets contents.
  */
