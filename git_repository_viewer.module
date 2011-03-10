@@ -138,8 +138,9 @@ function git_repository_viewer_theme() {
     ),
     'git_repository_viewer_view_file' => array(
       'arguments' => array(
-        'blob' => NULL,
+        'object' => NULL,
         'name' => '',
+        'start_line' => 1,
       ),
     ),
     'git_repository_viewer_view_image' => array(
@@ -242,6 +243,7 @@ function git_repository_viewer_filter_process_callback($elements) {
     else {
       $content = $data->contents;
     }
+    $start_line = 1;
     if (count($elements) == 6) {
       if (($start_line = $elements[4]) < ($end_line = $elements[5])) {
         $text_elements = explode("\n", $content);
@@ -254,7 +256,7 @@ function git_repository_viewer_filter_process_callback($elements) {
         $content = implode("\n", $content);
       }
     }
-    $content = theme('git_repository_viewer_view_file', $content, $data->name);
+    $content = theme('git_repository_viewer_view_file', $content, $data->name, $start_line);
     return $content;
   }
 }
@@ -507,7 +509,7 @@ function theme_git_repository_viewer_view_directory($contents, $name) {
  * @param (string) $name
  *   The name of the file.
  */
-function theme_git_repository_viewer_view_file($file_contents, $name) {
+function theme_git_repository_viewer_view_file($file_contents, $name, $start_line = 1) {
   $type = git_repository_viewer_get_blob_type($name);
   $image_extensions = array(
     'jpg',
@@ -521,12 +523,12 @@ function theme_git_repository_viewer_view_file($file_contents, $name) {
   }
   else {
     // TODO: turn this into a theme function?
-    $output = git_repository_viewer_format_text($file_contents, $type);
+    $output = git_repository_viewer_format_text($file_contents, $type, $start_line);
   }
   return $output;
 }
 
-function git_repository_viewer_format_text($text, $type) {
+function git_repository_viewer_format_text($text, $type, $start_line = 1) {
   if (strtolower($type) == 'md' || strtolower($type) == 'mdown' && module_exists('markdown')) {
     $output = _markdown_process($text, '');
   }
@@ -535,7 +537,7 @@ function git_repository_viewer_format_text($text, $type) {
     $available_languages = _geshifilter_get_available_languages();
     // Prevent a php undefined inex notice resulting from asking geshi to handle a type it doesn't understand.
     isset($available_languages[$type]['language_path']) ? $type = $type : $type = 'text';
-    $output = geshifilter_process($text, $type, TRUE);
+    $output = geshifilter_process($text, $type, TRUE, $start_line);
   }
   else {
     $output = "<code type='$type'>";
